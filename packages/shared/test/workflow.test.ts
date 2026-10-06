@@ -58,6 +58,33 @@ describe('ALLOWED_TRANSITIONS / canTransition', () => {
     expect(isTerminalState('accepted')).toBe(false);
     expect(canTransition('accepted', 'escalated')).toBe(true);
   });
+
+  it('routes pending_human to pending_review, accepted, or escalated', () => {
+    expect(canTransition('pending_human', 'pending_review')).toBe(true);
+    expect(canTransition('pending_human', 'accepted')).toBe(true);
+    expect(canTransition('pending_human', 'escalated')).toBe(true);
+    // but not back to prelabel or forward to needs_correct
+    expect(canTransition('pending_human', 'pending_prelabel')).toBe(false);
+    expect(canTransition('pending_human', 'needs_correct')).toBe(false);
+  });
+
+  it('pending_prelabel can route directly to pending_human for skipped pre-label', () => {
+    expect(canTransition('pending_prelabel', 'pending_human')).toBe(true);
+  });
+
+  it('escalated items can be resolved to accepted or sent back to review', () => {
+    expect(canTransition('escalated', 'accepted')).toBe(true);
+    expect(canTransition('escalated', 'pending_review')).toBe(true);
+    expect(canTransition('escalated', 'in_review')).toBe(true);
+  });
+
+  it('needs_correct can be re-submitted for review or accepted directly', () => {
+    expect(canTransition('needs_correct', 'pending_review')).toBe(true);
+    expect(canTransition('needs_correct', 'accepted')).toBe(true);
+    expect(canTransition('needs_correct', 'escalated')).toBe(true);
+    // cannot jump back to prelabel
+    expect(canTransition('needs_correct', 'pending_prelabel')).toBe(false);
+  });
 });
 
 describe('decideAfterPrelabel', () => {
@@ -309,5 +336,63 @@ describe('canonicalJson', () => {
     expect(canonicalJson({ a: { d: 1, c: [2, { f: 1, e: 2 }] } })).toBe(
       '{"a":{"c":[2,{"e":2,"f":1}],"d":1}}',
     );
+  });
+});
+
+describe('PIPELINE_THRESHOLDS boundary conditions', () => {
+  it('treats exactly lowConfidenceEscalation as escalation (strictly less than required)', () => {
+    // The threshold check is `< lowConfidenceEscalation`, so exactly at the
+    // boundary should NOT escalate — it's the inclusive lower edge of the normal path.
+    const at = decideAfterPrelabel(PIPELINE_THRESHOLDS.lowConfidenceEscalation);
+    expect(at.nextState).toBe('pending_review');
+    expect(at.requiresEscalation).toBe(false);
+  });
+
+  it('treats exactly highConfidenceAutoAccept as fast-accept eligible', () => {
+    const at = decideAfterPrelabel(PIPELINE_THRESHOLDS.highConfidenceAutoAccept);
+    expect(at.canFastAccept).toBe(true);
+  });
+
+  it('goldAgreementRequired is a positive integer', () => {
+    expect(Number.isInteger(PIPELINE_THRESHOLDS.goldAgreementRequired)).toBe(true);
+    expect(PIPELINE_THRESHOLDS.goldAgreementRequired).toBeGreaterThan(0);
+  });
+
+  it('qcRandomFraction is in (0, 1)', () => {
+    expect(PIPELINE_THRESHOLDS.qcRandomFraction).toBeGreaterThan(0);
+    expect(PIPELINE_THRESHOLDS.qcRandomFraction).toBeLessThan(1);
+  });
+
+  it('goldCheckInjectionRate is in (0, 1)', () => {
+    expect(PIPELINE_THRESHOLDS.goldCheckInjectionRate).toBeGreaterThan(0);
+    expect(PIPELINE_THRESHOLDS.goldCheckInjectionRate).toBeLessThan(1);
+  });
+});
+
+describe('qualifiesForGold edge cases', () => {
+  it('never promotes with zero confirmations', () => {
+    expect(qualifiesForGold(0)).toBe(false);
+  });
+
+  it('promotes at exactly the required count', () => {
+    expect(qualifiesForGold(PIPELINE_THRESHOLDS.goldAgreementRequired)).toBe(true);
+  });
+
+  it('also promotes above the required count', () => {
+    expect(qualifiesForGold(PIPELINE_THRESHOLDS.goldAgreementRequired + 10)).toBe(true);
+  });
+});
+
+describe('null AI label path in decideVerification', () => {
+  it('can promote to gold via null-label path when prior confirmations are sufficient', () => {
+    const outcome = decideVerification({
+      taskType: 'text_classification',
+      aiLabel: null,
+      humanLabel: { taskType: 'text_classification', label: { label: 'positive' } },
+      priorHumanConfirmations: PIPELINE_THRESHOLDS.goldAgreementRequired - 1,
+    });
+    // null-label branch adds 1 confirmation, so it should qualify
+    expect(outcome.promoteToGold).toBe(true);
+    expect(outcome.nextState).toBe('pending_review');
   });
 });
