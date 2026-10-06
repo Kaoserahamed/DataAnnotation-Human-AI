@@ -11,37 +11,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Quality gate: format · lint · typecheck · test + coverage ──────────────
   ci:
     name: Lint · Typecheck · Test
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: ["20.11.0"]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js ${{ matrix.node-version }}
+      - name: Set up Node.js 20.11.0
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "20.11.0"
           cache: "npm"
 
-      - name: Install dependencies (clean install)
+      - name: Install dependencies (clean install from lockfile)
         run: npm ci
 
-      - name: Check formatting
+      - name: Check formatting (Prettier)
         run: npm run format:check
 
-      - name: Lint
+      - name: Lint (ESLint)
         run: npm run lint
 
-      - name: Typecheck
+      - name: Typecheck (tsc --noEmit across all workspaces)
         run: npm run typecheck
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (80% threshold enforced by vitest config)
         run: npm run test:coverage
 
       - name: Upload coverage report
@@ -54,6 +51,7 @@ jobs:
             apps/api/coverage/
           retention-days: 7
 
+  # ── Security: audit production deps for high/critical CVEs ─────────────────
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
@@ -62,7 +60,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js 20.11.0
         uses: actions/setup-node@v4
         with:
           node-version: "20.11.0"
@@ -71,5 +69,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit production dependencies for high/critical vulnerabilities
+      # Fails the build if any production dependency has a high or critical
+      # vulnerability. Uses the npm script so the flag is kept in one place.
+      - name: Audit production dependencies (high/critical)
         run: npm run audit:prod
+
+      # Separate informational step: audit all deps including devDependencies.
+      # Uses continue-on-error so dev-only findings don't block the build,
+      # but they appear in the job log for visibility.
+      - name: Audit all dependencies (informational)
+        run: npm run audit:all
+        continue-on-error: true
