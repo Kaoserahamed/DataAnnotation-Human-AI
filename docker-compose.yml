@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-annotation}
+      POSTGRES_USER: ${POSTGRES_USER:-annotation}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-annotation_dev_pw}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-annotation} -d ${POSTGRES_DB:-annotation}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DB_CLIENT: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-annotation}:${POSTGRES_PASSWORD:-annotation_dev_pw}@db:5432/${POSTGRES_DB:-annotation}
+      JWT_SECRET: ${JWT_SECRET:-development-only-insecure-secret-do-not-use-in-production}
+      AI_PROVIDER: ${AI_PROVIDER:-heuristic}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      PORT: 4000
+    ports:
+      - "${API_PORT:-4000}:4000"
+    volumes:
+      # Mount source for live-reload in development (tsx watch)
+      - ./apps/api/src:/app/apps/api/src:ro
+      - ./packages:/app/packages:ro
+
+volumes:
+  pgdata:
