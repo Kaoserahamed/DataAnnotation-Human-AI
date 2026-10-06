@@ -4,7 +4,27 @@ A production-ready annotation system that combines AI pre-labeling with human
 verification to build high-quality, gold-standard datasets — no manual setup
 required for local development.
 
-[![CI](https://github.com/Kaoserahamed/HumanAndAIDataAnnotation/actions/workflows/ci.yml/badge.svg)](https://github.com/Kaoserahamed/HumanAndAIDataAnnotation/actions/workflows/ci.yml)
+[![CI](https://github.com/Kaoserahamed/DataAnnotation-Human-AI_v1/actions/workflows/ci.yml/badge.svg)](https://github.com/Kaoserahamed/DataAnnotation-Human-AI_v1/actions/workflows/ci.yml)
+
+---
+
+## Project Type
+
+This is a **backend application platform**, not infrastructure-as-code.
+
+| Signal | Value |
+|--------|-------|
+| Language | TypeScript (ESM, Node 20) |
+| Framework | Fastify 5 |
+| Database | PostgreSQL 16 via `pg`; embedded PGlite for dev/test |
+| Package layout | npm workspaces monorepo (`apps/api` + `packages/shared`) |
+| Test runner | Vitest (321 tests, 80% coverage threshold enforced in CI) |
+| AI providers | Pluggable (`heuristic` built-in, `openai` optional) |
+
+There is no Terraform, Helm, Kubernetes, Pulumi, or Ansible in this repository.
+All deployment artifacts are a `Dockerfile` (multi-stage) and a
+`docker-compose.yml` for local development; production deployment is
+intentionally left to the operator's chosen platform.
 
 ---
 
