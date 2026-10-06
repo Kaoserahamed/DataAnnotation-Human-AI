@@ -16,6 +16,19 @@ export default defineConfig({
           },
         },
       },
+      {
+        test: {
+          name: 'api',
+          root: './apps/api',
+          environment: 'node',
+          include: ['test/**/*.test.ts'],
+          coverage: {
+            provider: 'v8',
+            include: ['src/**/*.ts'],
+            thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
+          },
+        },
+      },
     ],
   },
 });

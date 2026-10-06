@@ -5,6 +5,7 @@ import {
   interpretKappa,
   jaccardSimilarity,
   krippendorffAlpha,
+  percentageAgreement,
 } from '../src/agreement.js';
 
 describe("Cohen's kappa", () => {
@@ -243,5 +244,83 @@ describe('jaccardSimilarity', () => {
 
   it('is 1 for identical sets', () => {
     expect(jaccardSimilarity(new Set(['a', 'b']), new Set(['a', 'b']))).toBe(1);
+  });
+});
+
+describe('percentageAgreement', () => {
+  it('calculates the fraction of agreed items', () => {
+    const table = {
+      categories: ['yes', 'no'],
+      counts: [
+        [20, 5],  // A said 'yes': 20 times B agreed, 5 times disagreed
+        [10, 15], // A said 'no': 10 times B disagreed, 15 times agreed
+      ],
+    } as const;
+    // Diagonal sum: 20 + 15 = 35
+    // Total: 50
+    // Agreement: 35/50 = 0.7
+    expect(percentageAgreement(table)).toBeCloseTo(0.7, 10);
+  });
+
+  it('is 1 for perfect agreement', () => {
+    const perfect = {
+      categories: ['a', 'b', 'c'],
+      counts: [
+        [10, 0, 0],
+        [0, 10, 0],
+        [0, 0, 10],
+      ],
+    } as const;
+    expect(percentageAgreement(perfect)).toBe(1);
+  });
+
+  it('is 0 when raters always disagree', () => {
+    const total = {
+      categories: ['a', 'b'],
+      counts: [
+        [0, 10],
+        [10, 0],
+      ],
+    } as const;
+    expect(percentageAgreement(total)).toBe(0);
+  });
+
+  it('returns null for an empty table', () => {
+    const empty = {
+      categories: ['a', 'b'],
+      counts: [
+        [0, 0],
+        [0, 0],
+      ],
+    } as const;
+    expect(percentageAgreement(empty)).toBeNull();
+  });
+
+  it('handles unequal row totals correctly', () => {
+    const unequal = {
+      categories: ['x', 'y'],
+      counts: [
+        [8, 2],  // Row sum: 10
+        [1, 9],  // Row sum: 10
+      ],
+    } as const;
+    // Diagonal: 8 + 9 = 17
+    // Total: 20
+    expect(percentageAgreement(unequal)).toBeCloseTo(0.85, 10);
+  });
+
+  it('is simpler than kappa and does not correct for chance', () => {
+    // For the same table, percentage agreement should be >= kappa
+    // (except in rare cases where kappa is negative)
+    const table = {
+      categories: ['a', 'b'],
+      counts: [
+        [20, 5],
+        [10, 15],
+      ],
+    } as const;
+    const pct = percentageAgreement(table);
+    const kappa = cohensKappa(table);
+    expect(pct).toBeGreaterThan(kappa!);
   });
 });

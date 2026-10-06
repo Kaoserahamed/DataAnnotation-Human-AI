@@ -223,6 +223,25 @@ export function interpretKappa(kappa: number): AgreementBand {
   return 'almost_perfect';
 }
 
+/**
+ * Percentage agreement: fraction of items where both raters gave identical labels.
+ *
+ * This is the simplest IAA metric and does not correct for chance agreement,
+ * so it should be paired with kappa for a complete picture. Returns `null` when
+ * the table is empty.
+ */
+export function percentageAgreement(table: PairwiseTable): number | null {
+  const { counts } = table;
+  const total = counts.reduce(
+    (sum, row) => sum + row.reduce((rowSum, cell) => rowSum + cell, 0),
+    0,
+  );
+  if (total === 0) return null;
+
+  const agreed = counts.reduce((sum, row, i) => sum + (row[i] ?? 0), 0);
+  return safeRatio(agreed, total);
+}
+
 /** Jaccard similarity of token sets, used for active-learning diversity. */
 export function jaccardSimilarity(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
   if (a.size === 0 && b.size === 0) return 1;

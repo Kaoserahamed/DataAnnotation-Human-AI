@@ -8,3 +8,5 @@ export * from './active-learning.js';
 export * from './workflow.js';
 export * from './quality.js';
 export * from './contracts.js';
+export * from './metrics.js';
+export * from './batch.js';
