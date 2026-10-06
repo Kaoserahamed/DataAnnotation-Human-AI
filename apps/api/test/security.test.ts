@@ -219,4 +219,41 @@ describe('HTTP security behavior', () => {
     });
     expect(response.statusCode).toBe(401);
   });
+
+  it('returns a structured error envelope for AppError (4xx) responses', async () => {
+    // Use the existing admin user registered by the 'enforces role boundaries' test
+    // (admin500 suffix avoids email conflicts with other tests in this suite).
+    const adminPw = pw();
+    const reg = await register(app, { email: 'admin500b@sec.local', name: 'A', password: adminPw });
+    // First user in a fresh server becomes admin; later registrations without
+    // a token are forbidden — either way we need a token, so log in if reg succeeded.
+    const loginPayload = { email: 'admin500b@sec.local', password: adminPw };
+    if (reg.statusCode !== 201) {
+      // Server already bootstrapped — create via an existing admin token approach:
+      // Trigger a NOT_FOUND without auth first to verify unauthenticated response.
+      const unauthed = await inject(app, { method: 'GET', url: '/api/datasets/no-such/queue' });
+      expect(unauthed.statusCode).toBe(401);
+      expect(unauthed.body.error.code).toBe('UNAUTHORIZED');
+      expect(unauthed.body.error.requestId).toBeTruthy();
+      return;
+    }
+
+    const adminLogin = await inject(app, {
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: loginPayload,
+    });
+    const token = adminLogin.body.token as string;
+
+    // Authenticated request to a non-existent dataset triggers NOT_FOUND AppError.
+    const ds404 = await inject(app, {
+      method: 'GET',
+      url: '/api/datasets/does-not-exist-xyz/queue',
+      headers: bearer(token),
+    });
+    expect(ds404.statusCode).toBe(404);
+    expect(ds404.body.error.code).toBe('NOT_FOUND');
+    expect(ds404.body.error.requestId).toBeTruthy();
+    expect(typeof ds404.body.error.message).toBe('string');
+  });
 });

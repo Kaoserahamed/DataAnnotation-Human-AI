@@ -60,6 +60,9 @@ interface UnitRating {
 function parseSafe(taskType: TaskType, value: unknown): LabelPayload | null {
   if (value === null || value === undefined) return null;
   try {
+    // Labels are stored as raw label values (e.g. { label: 'positive' } for
+    // categorical, or an array for spatial), NOT as full { taskType, label }
+    // envelopes. parseLabelForTaskType handles all three shapes via toEnvelope.
     return parseLabelForTaskType(taskType, value);
   } catch {
     return null;
@@ -80,9 +83,11 @@ async function loadUnits(
     created_at: string | Date;
     task_type: TaskType;
   }>(
-    `SELECT a.task_id, a.item_id, a.user_id, a.label, a.verdict, a.created_at, t.task_type
+    `SELECT a.task_id, a.item_id, a.user_id, a.label, a.verdict, a.created_at,
+            d.task_type
      FROM annotations a
      JOIN tasks t ON t.id = a.task_id
+     JOIN datasets d ON d.id = t.dataset_id
      WHERE t.dataset_id = $1
      ORDER BY a.task_id, a.created_at ASC
      LIMIT $2`,
@@ -232,7 +237,6 @@ export async function computeAgreement(
       band: cohens !== null ? interpretKappa(cohens) : null,
     };
   } catch (error) {
-    console.error('Error in computeAgreement:', error);
     throw error;
   }
 }

@@ -1,16 +1,17 @@
 /**
  * Unit tests for API library utilities:
- *   - AppError / errors factory (errors.ts)
+ *   - AppError / errors factory (errors.ts) including HTTP handler branches
  *   - Metrics ring-buffer and snapshot (metrics.ts)
  *   - newId uniqueness and format (ids.ts)
  *   - normalizeQuery comma-splitting (http.ts)
  */
 
 import { describe, expect, it } from 'vitest';
-import { AppError, errors } from '../src/lib/errors.js';
+import { AppError, errors, registerErrorHandler } from '../src/lib/errors.js';
 import { Metrics } from '../src/lib/metrics.js';
 import { newId } from '../src/lib/ids.js';
 import { normalizeQuery } from '../src/lib/http.js';
+import { createTestServer } from './helpers.js';
 
 // ─── AppError ────────────────────────────────────────────────────────────────
 
@@ -241,5 +242,84 @@ describe('normalizeQuery', () => {
 
   it('passes non-string values through unchanged', () => {
     expect(normalizeQuery({ limit: 25 })).toEqual({ limit: 25 });
+  });
+});
+
+// ─── Error handler integration (covers lines 94-101, 119-122 of errors.ts) ──
+
+describe('registerErrorHandler — HTTP integration', () => {
+  it('wraps a NOT_FOUND AppError in the standard envelope', async () => {
+    const app = await createTestServer();
+    try {
+      const response = await app.inject({ method: 'GET', url: '/api/does-not-exist' });
+      expect(response.statusCode).toBe(404);
+      const body = response.json();
+      expect(body.error.code).toBe('NOT_FOUND');
+      expect(body.error.requestId).toBeTruthy();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('wraps a ZodError in a 400 VALIDATION_ERROR envelope', async () => {
+    const app = await createTestServer();
+    try {
+      // POST /api/auth/login with a body that fails Zod validation.
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: 'not-an-email', password: 'x' },
+      });
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(Array.isArray(body.error.details)).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('covers the INTERNAL_ERROR unhandled-error path and the 5xx AppError tracker path', async () => {
+    // Build a custom server with extra test routes registered BEFORE ready().
+    const { buildApp } = await import('../src/app.js');
+    const { loadConfig } = await import('../src/config.js');
+    const { HeuristicProvider } = await import('../src/providers/heuristic.js');
+
+    const config = loadConfig({ NODE_ENV: 'test', DB_CLIENT: 'pglite', AI_PROVIDER: 'heuristic' });
+    const { app } = await buildApp({
+      config,
+      provider: new HeuristicProvider(),
+      migrate: false,
+    });
+
+    // Register test routes before ready().
+    app.get('/test-unhandled', async () => { throw new Error('intentional unhandled'); });
+    app.get('/test-5xx-app', async () => { throw new AppError('INTERNAL_ERROR', 'synthetic 500'); });
+    // Simulate a Postgres unique-violation to cover the isUniqueViolation branch.
+    app.get('/test-unique-violation', async () => {
+      const err = new Error('duplicate key') as NodeJS.ErrnoException & { code: string };
+      err.code = '23505';
+      throw err;
+    });
+
+    await app.ready();
+    try {
+      const unhandled = await app.inject({ method: 'GET', url: '/test-unhandled' });
+      expect(unhandled.statusCode).toBe(500);
+      expect(unhandled.json().error.code).toBe('INTERNAL_ERROR');
+      expect(unhandled.json().error.requestId).toBeTruthy();
+
+      const appErr = await app.inject({ method: 'GET', url: '/test-5xx-app' });
+      expect(appErr.statusCode).toBe(500);
+      expect(appErr.json().error.code).toBe('INTERNAL_ERROR');
+      expect(appErr.json().error.message).toBe('synthetic 500');
+
+      const conflict = await app.inject({ method: 'GET', url: '/test-unique-violation' });
+      expect(conflict.statusCode).toBe(409);
+      expect(conflict.json().error.code).toBe('CONFLICT');
+      expect(conflict.json().error.message).toBe('resource already exists');
+    } finally {
+      await app.close();
+    }
   });
 });

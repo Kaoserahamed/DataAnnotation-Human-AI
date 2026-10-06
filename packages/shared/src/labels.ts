@@ -157,9 +157,10 @@ export function labelSchemaForTaskType(taskType: TaskType): z.ZodTypeAny {
  *
  * Callers hold the data in one of three forms, and requiring them to
  * hand-build the envelope every time just invites mistakes:
- *   1. a full envelope   `{ taskType, label }`
- *   2. a bare envelope   `{ label }`
- *   3. a raw value       an array for structured modalities
+ *   1. a full envelope   `{ taskType, label: <valueObject> }`
+ *   2. a raw value       an array for structured modalities
+ *   3. a plain object that IS the label value (e.g. `{ label: 'positive' }`
+ *      for CategoricalLabel, stored in the DB without the outer envelope)
  *
  * `taskType` always comes from the argument, never from the payload, so the two
  * can never disagree.
@@ -168,10 +169,16 @@ function toEnvelope(taskType: TaskType, payload: unknown): unknown {
   if (Array.isArray(payload)) return { taskType, label: payload };
   if (payload !== null && typeof payload === 'object') {
     const record = payload as Record<string, unknown>;
-    if ('taskType' in record || 'label' in record) {
+    // Already a full envelope — just pin the taskType from our argument.
+    if ('taskType' in record) return { ...record, taskType };
+    // A partial envelope where `label` is itself an object (the value).
+    // This distinguishes { label: { label: 'positive' } } (envelope) from
+    // { label: 'positive' } (raw CategoricalLabel stored as the value itself).
+    if ('label' in record && record['label'] !== null && typeof record['label'] === 'object') {
       return { ...record, taskType };
     }
   }
+  // Treat the whole payload as the raw label value.
   return { taskType, label: payload };
 }
 
