@@ -3,11 +3,15 @@
  * handling, authentication envelopes, and role enforcement.
  */
 
+import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { loadConfig, ConfigError } from '../src/config.js';
 import { hashPassword, signToken, verifyPassword, verifyToken } from '../src/lib/auth.js';
 import { bearer, createTestServer, inject, register } from './helpers.js';
+
+/** Produce a random password that satisfies the 12-char minimum. */
+const pw = () => randomBytes(16).toString('hex');
 
 describe('configuration guard rails', () => {
   it('runs development with defaults', () => {
@@ -144,28 +148,31 @@ describe('HTTP security behavior', () => {
   });
 
   it('enforces role boundaries after bootstrap', async () => {
+    const adminPw = pw();
+    const workerPw = pw();
+
     await register(app, {
       email: 'first-admin@sec.local',
       name: 'First Admin',
-      password: 'first-admin-pw-1',
+      password: adminPw,
     });
     const adminLogin = await inject(app, {
       method: 'POST',
       url: '/api/auth/login',
-      payload: { email: 'first-admin@sec.local', password: 'first-admin-pw-1' },
+      payload: { email: 'first-admin@sec.local', password: adminPw },
     });
     const adminToken = adminLogin.body.token as string;
 
     await register(
       app,
-      { email: 'worker@sec.local', name: 'Worker', password: 'worker-password-1' },
+      { email: 'worker@sec.local', name: 'Worker', password: workerPw },
       adminToken,
     );
 
     const userLogin = await inject(app, {
       method: 'POST',
       url: '/api/auth/login',
-      payload: { email: 'worker@sec.local', password: 'worker-password-1' },
+      payload: { email: 'worker@sec.local', password: workerPw },
     });
     const userToken = userLogin.body.token as string;
 
@@ -182,7 +189,7 @@ describe('HTTP security behavior', () => {
       method: 'POST',
       url: '/api/auth/register',
       headers: bearer(userToken),
-      payload: { email: 'x@example.com', name: 'X', password: 'long-enough-pw-1' },
+      payload: { email: 'x@example.com', name: 'X', password: pw() },
     });
     expect(forbiddenRegister.statusCode).toBe(403);
 
@@ -190,14 +197,14 @@ describe('HTTP security behavior', () => {
     const orphan = await register(app, {
       email: 'orphan@sec.local',
       name: 'Orphan',
-      password: 'orphan-password-1',
+      password: pw(),
     });
     expect(orphan.statusCode).toBe(403);
 
     // Duplicate emails conflict rather than crash.
     const duplicate = await register(
       app,
-      { email: 'worker@sec.local', name: 'Copy', password: 'another-password' },
+      { email: 'worker@sec.local', name: 'Copy', password: pw() },
       adminToken,
     );
     expect(duplicate.statusCode).toBe(409);

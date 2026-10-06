@@ -4,12 +4,21 @@
  * Every server gets its own in-memory PGlite database (a real Postgres
  * engine), the deterministic heuristic provider, and NODE_ENV=test so no
  * environment variables are required to run the suite.
+ *
+ * Passwords are generated fresh for every bootstrapWorld() call using
+ * randomBytes so no plaintext credentials live in source.
  */
 
+import { randomBytes } from 'node:crypto';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
 import { HeuristicProvider } from '../src/providers/heuristic.js';
+
+/** Produce a URL-safe random password that satisfies the 12-char minimum. */
+function randomPassword(): string {
+  return randomBytes(16).toString('hex'); // 32 hex chars, always ≥ 12
+}
 
 export async function createTestServer(): Promise<FastifyInstance> {
   const config = loadConfig({
@@ -70,34 +79,39 @@ export async function bootstrapWorld(
   app: FastifyInstance,
   options: { taskType?: string; labelSchema?: Record<string, unknown>; itemCount?: number } = {},
 ): Promise<TestWorld> {
+  // Generate fresh random passwords each call — no plaintext credentials in source.
+  const adminPw = randomPassword();
+  const annotatorPw = randomPassword();
+  const reviewer1Pw = randomPassword();
+
   const admin = await register(app, {
     email: 'admin@test.local',
     name: 'Admin',
-    password: 'admin-password-1',
+    password: adminPw,
     role: 'admin',
   });
   if (admin.statusCode !== 201) throw new Error(`admin bootstrap failed: ${JSON.stringify(admin.body)}`);
-  const adminToken = await login(app, 'admin@test.local', 'admin-password-1');
+  const adminToken = await login(app, 'admin@test.local', adminPw);
 
   await register(
     app,
-    { email: 'ann1@test.local', name: 'Ann One', password: 'annotator-password' },
+    { email: 'ann1@test.local', name: 'Ann One', password: annotatorPw },
     adminToken,
   );
   await register(
     app,
-    { email: 'ann2@test.local', name: 'Ann Two', password: 'annotator-password' },
+    { email: 'ann2@test.local', name: 'Ann Two', password: annotatorPw },
     adminToken,
   );
   await register(
     app,
-    { email: 'rev@test.local', name: 'Rev Er', password: 'reviewer-password-1', role: 'reviewer' },
+    { email: 'rev@test.local', name: 'Rev Er', password: reviewer1Pw, role: 'reviewer' },
     adminToken,
   );
 
-  const annotatorToken = await login(app, 'ann1@test.local', 'annotator-password');
-  const annotator2Token = await login(app, 'ann2@test.local', 'annotator-password');
-  const reviewerToken = await login(app, 'rev@test.local', 'reviewer-password-1');
+  const annotatorToken = await login(app, 'ann1@test.local', annotatorPw);
+  const annotator2Token = await login(app, 'ann2@test.local', annotatorPw);
+  const reviewerToken = await login(app, 'rev@test.local', reviewer1Pw);
 
   const project = await app.inject({
     method: 'POST',

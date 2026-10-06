@@ -7,16 +7,23 @@
  * pre-label → verify → gold flow visible immediately; the rest exercise the
  * deterministic heuristics.
  *
- * Demo credentials (local development only): admin@demo.local,
- * ann1@demo.local, ann2@demo.local, reviewer@demo.local / demo-password-123
+ * The seed password is read from SEED_PASSWORD env var. When unset, a random
+ * 16-byte hex token is generated and printed to stdout at seed time so the
+ * developer can copy it — no hardcoded fallback is shipped in source.
+ *
+ * Example:
+ *   SEED_PASSWORD=mydevpass npm run db:seed
+ *   # or just: npm run db:seed  (a random password will be printed)
  */
 
+import { randomBytes } from 'node:crypto';
 import { loadConfig } from '../config.js';
 import { createDatabase, json } from './database.js';
 import { runMigrations } from './migrate.js';
 import { hashPassword } from '../lib/auth.js';
 
-const PASSWORD = 'demo-password-123';
+/** Use SEED_PASSWORD if provided, otherwise generate a random token. */
+const PASSWORD = process.env['SEED_PASSWORD'] ?? randomBytes(16).toString('hex');
 
 interface SeedItem {
   id: string;
@@ -373,7 +380,7 @@ async function main(): Promise<void> {
     console.log(
       `seeded ${USERS.length} users, 1 project, ${DATASETS.length} datasets, ${itemCount} items`,
     );
-    console.log('sign in with admin@demo.local / demo-password-123');
+    console.log(`sign in with admin@demo.local / ${PASSWORD}`);
   } finally {
     await db.close();
   }
