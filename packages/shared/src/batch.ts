@@ -35,11 +35,11 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
 /**
  * Batch operation result with success/failure tracking.
  */
-export interface BatchResult<T, E = Error> {
+export interface BatchResult<TOutput, TInput = TOutput, E = Error> {
   /** Successfully processed items. */
-  succeeded: T[];
-  /** Failed items with their errors. */
-  failed: Array<{ item: T; error: E }>;
+  succeeded: TOutput[];
+  /** Failed items (original inputs) with their errors. */
+  failed: Array<{ item: TInput; error: E }>;
   /** Total processing time in milliseconds. */
   durationMs: number;
 }
@@ -60,7 +60,7 @@ export async function processBatch<TInput, TOutput>(
     concurrency?: number;
     onProgress?: (completed: number, total: number) => void;
   } = {},
-): Promise<BatchResult<TOutput, unknown>> {
+): Promise<BatchResult<TOutput, TInput, unknown>> {
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
   const concurrency = options.concurrency ?? 5;
   const startTime = performance.now();

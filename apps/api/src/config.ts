@@ -25,6 +25,12 @@ const EnvSchema = z.object({
   OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   OPENAI_MODEL: z.string().min(1).default('gpt-4o-mini'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  /** Pino log level; silenced in test to keep output clean. */
+  LOG_LEVEL: z
+    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+    .default('info'),
+  /** Sentry DSN for error tracking; empty string disables the integration. */
+  SENTRY_DSN: z.string().default(''),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema> & {

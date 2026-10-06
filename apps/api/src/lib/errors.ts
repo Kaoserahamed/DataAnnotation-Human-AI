@@ -10,6 +10,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import type { ErrorResponse } from '@haap/shared';
+import { logAndCapture } from './telemetry.js';
 
 export type ErrorCode =
   | 'VALIDATION_ERROR'
@@ -88,6 +89,16 @@ export function registerErrorHandler(app: FastifyInstance): void {
           requestId,
         },
       };
+      // 5xx AppErrors are unexpected — capture them in the tracker.
+      if (error.statusCode >= 500) {
+        logAndCapture(request.log, request.server.ctx.tracker, {
+          requestId,
+          code: error.code,
+          statusCode: error.statusCode,
+          message: error.message,
+          err: error,
+        });
+      }
       void reply.status(error.statusCode).send(body);
       return;
     }
@@ -104,8 +115,14 @@ export function registerErrorHandler(app: FastifyInstance): void {
       return;
     }
 
-    // Unexpected failure: log the stack, return a opaque-but-useful message.
-    request.log.error({ err: error }, 'unhandled error');
+    // Unexpected failure: log the stack, capture via tracker, return opaque message.
+    logAndCapture(request.log, request.server.ctx.tracker, {
+      requestId,
+      code: 'INTERNAL_ERROR',
+      statusCode: 500,
+      message: error instanceof Error ? error.message : 'internal server error',
+      err: error,
+    });
     const body: ErrorResponse = {
       error: {
         code: 'INTERNAL_ERROR',

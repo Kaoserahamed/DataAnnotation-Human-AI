@@ -17,6 +17,7 @@ import { runMigrations } from './db/migrate.js';
 import { registerErrorHandler } from './lib/errors.js';
 import { newId } from './lib/ids.js';
 import { Metrics } from './lib/metrics.js';
+import { buildLoggerOptions, createTracker, type ErrorTracker } from './lib/telemetry.js';
 import { createProvider, type PrelabelProvider } from './providers/registry.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -30,6 +31,7 @@ export interface BuildAppOptions {
   config?: AppConfig;
   db?: Database;
   provider?: PrelabelProvider;
+  tracker?: ErrorTracker;
   /** Apply pending migrations on boot (default true). */
   migrate?: boolean;
 }
@@ -39,6 +41,7 @@ export interface BuiltServer {
   config: AppConfig;
   db: Database;
   ctx: ServiceContext;
+  tracker: ErrorTracker;
 }
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltServer> {
@@ -47,10 +50,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltServ
   if (options.migrate !== false) await runMigrations(db);
   const provider = options.provider ?? createProvider(config);
   const metrics = new Metrics(provider.name);
-  const ctx: ServiceContext = { db, provider, metrics };
+  const tracker = options.tracker ?? createTracker(config);
+  const ctx: ServiceContext = { db, provider, metrics, tracker };
 
   const app = Fastify({
-    logger: config.NODE_ENV === 'test' ? false : { level: 'info' },
+    logger: config.NODE_ENV === 'test' ? false : buildLoggerOptions(config),
     genReqId: () => newId(),
     bodyLimit: MAX_JSON_BODY_BYTES,
   });
@@ -91,5 +95,5 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltServ
     await db.close();
   });
 
-  return { app, config, db, ctx };
+  return { app, config, db, ctx, tracker };
 }

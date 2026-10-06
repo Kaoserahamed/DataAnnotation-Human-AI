@@ -25,7 +25,7 @@ describe('AppError', () => {
   });
 
   it('maps every code to the expected HTTP status', () => {
-    const cases: [Parameters<typeof AppError>[0], number][] = [
+    const cases: [ConstructorParameters<typeof AppError>[0], number][] = [
       ['VALIDATION_ERROR', 400],
       ['UNAUTHORIZED', 401],
       ['FORBIDDEN', 403],
