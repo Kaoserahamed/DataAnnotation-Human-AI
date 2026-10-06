@@ -14,7 +14,7 @@
     "db:seed": "tsx src/db/seed-cli.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.3.14",
+    "@electric-sql/pglite": "0.5.8",
     "@fastify/cors": "11.2.0",
     "@fastify/helmet": "13.0.2",
     "@haap/shared": "0.1.0",
