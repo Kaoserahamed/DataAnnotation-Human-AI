@@ -1,0 +1,25 @@
+# Build output / dependencies
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Generated files that Prettier should not reformat
+package-lock.json
+pnpm-lock.yaml
+CHANGELOG.md
+
+# Non-text assets
+*.docx
+*.jpeg
+*.jpg
+*.png
+*.svg
+*.webp
+*.gif
+*.ico
+*.pdf
+*.zip
+*.woff
+*.woff2

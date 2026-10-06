@@ -1,0 +1,31 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local environment & secrets — never commit real values
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local database artifacts
+.pglite/
+*.sqlite
+*.sqlite3
+data/
+tmp/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
