@@ -324,3 +324,107 @@ describe('percentageAgreement', () => {
     expect(pct).toBeGreaterThan(kappa!);
   });
 });
+
+// ─── Krippendorff alpha edge cases ──────────────────────────────────────────
+
+describe("Krippendorff's alpha edge cases", () => {
+  it('returns null for an all-null matrix (no pairings possible)', () => {
+    const matrix = [[null, null], [null, null]];
+    expect(krippendorffAlpha(matrix, ['a', 'b'])).toBeNull();
+  });
+
+  it('returns null for a matrix with only single-rater rows', () => {
+    // Each row has exactly one non-null value → m < 2 for every row
+    const matrix = [['a', null], [null, 'b'], ['a', null]];
+    expect(krippendorffAlpha(matrix, ['a', 'b'])).toBeNull();
+  });
+
+  it('throws for an unknown category in the matrix', () => {
+    const matrix = [['a', 'z']]; // 'z' is not in categories
+    expect(() => krippendorffAlpha(matrix, ['a', 'b'])).toThrow('Unknown category');
+  });
+
+  it('returns 1 for a matrix where all raters always agree', () => {
+    const matrix = [['a', 'a'], ['b', 'b'], ['a', 'a']];
+    // Perfect agreement → observed disagreement = 0 → alpha = 1
+    expect(krippendorffAlpha(matrix, ['a', 'b'])).toBeCloseTo(1, 5);
+  });
+
+  it('filters out all-null rows before computing', () => {
+    const matrix = [
+      ['a', 'a'],
+      [null, null], // filtered out
+      ['b', 'b'],
+    ];
+    const result = krippendorffAlpha(matrix, ['a', 'b']);
+    expect(result).toBeCloseTo(1, 5);
+  });
+});
+
+// ─── Fleiss kappa error cases ────────────────────────────────────────────────
+
+describe("Fleiss' kappa error handling", () => {
+  it('throws for ragged rows (unequal rater count)', () => {
+    expect(() =>
+      fleissKappa([['a', 'b'], ['a']], ['a', 'b']),
+    ).toThrow('constant number of ratings per unit');
+  });
+
+  it('throws for a row with only one rater', () => {
+    expect(() =>
+      fleissKappa([['a'], ['b']], ['a', 'b']),
+    ).toThrow('at least 2 ratings per unit');
+  });
+
+  it('throws for an unknown category in the ratings', () => {
+    expect(() =>
+      fleissKappa([['a', 'z']], ['a', 'b']),
+    ).toThrow('Unknown category');
+  });
+
+  it('returns null for empty usable rows', () => {
+    expect(fleissKappa([], ['a', 'b'])).toBeNull();
+    expect(fleissKappa([[], []], ['a', 'b'])).toBeNull();
+  });
+
+  it('returns null for a single category (Pe = 1)', () => {
+    // All items rated as 'a' by all raters → Pe = 1 → denominator 0
+    const ratings = [['a', 'a'], ['a', 'a'], ['a', 'a']];
+    expect(fleissKappa(ratings, ['a'])).toBeNull();
+  });
+});
+
+// ─── Cohen's kappa edge cases ────────────────────────────────────────────────
+
+describe("Cohen's kappa edge cases", () => {
+  it('returns null for an empty categories list', () => {
+    expect(cohensKappa({ categories: [], counts: [] })).toBeNull();
+  });
+
+  it('returns null for a table with all zero counts', () => {
+    const empty = { categories: ['a', 'b'], counts: [[0, 0], [0, 0]] } as const;
+    expect(cohensKappa(empty)).toBeNull();
+  });
+
+  it('is negative when raters systematically disagree', () => {
+    // Raters always pick opposite categories
+    const anti = {
+      categories: ['a', 'b'],
+      counts: [[0, 10], [10, 0]],
+    } as const;
+    const kappa = cohensKappa(anti);
+    expect(kappa).not.toBeNull();
+    expect(kappa!).toBeLessThan(0);
+  });
+
+  it('handles a 3-category table', () => {
+    const table = {
+      categories: ['a', 'b', 'c'],
+      counts: [[10, 2, 1], [0, 8, 3], [1, 1, 14]],
+    } as const;
+    const kappa = cohensKappa(table);
+    expect(kappa).not.toBeNull();
+    expect(kappa!).toBeGreaterThan(0);
+    expect(kappa!).toBeLessThanOrEqual(1);
+  });
+});
