@@ -259,3 +259,92 @@ describe('matchBoundingBoxes', () => {
     expect(matchBoundingBoxes(prediction, gold)).toBe(1);
   });
 });
+
+// ─── spanSimilarity (direct, not via matchEntities) ────────────────────────
+
+import { spanSimilarity } from '../src/comparison.js';
+
+describe('spanSimilarity', () => {
+  it('is 1 for identical span text and label', () => {
+    expect(spanSimilarity(entity('Berlin', 'LOC'), entity('Berlin', 'LOC'))).toBeCloseTo(1, 10);
+  });
+
+  it('is 0 when entity types differ regardless of text', () => {
+    expect(spanSimilarity(entity('Berlin', 'LOC'), entity('Berlin', 'ORG'))).toBe(0);
+  });
+
+  it('is 0 for completely dissimilar texts with the same label', () => {
+    // "abc" vs "xyz" — Levenshtein distance 3, length 3 → similarity 0
+    expect(spanSimilarity(entity('abc', 'X'), entity('xyz', 'X'))).toBe(0);
+  });
+
+  it('scores partial similarity for near-miss text', () => {
+    // "Paris" vs "Pariss" — distance 1, longest 6 → 1 - 1/6 ≈ 0.833
+    const sim = spanSimilarity(entity('Paris', 'LOC'), entity('Pariss', 'LOC'));
+    expect(sim).toBeGreaterThan(0.8);
+    expect(sim).toBeLessThan(1);
+  });
+
+  it('is case-insensitive', () => {
+    expect(spanSimilarity(entity('BERLIN', 'LOC'), entity('berlin', 'LOC'))).toBeCloseTo(1, 10);
+  });
+
+  it('is 1 for two empty-text spans of the same type', () => {
+    const a = { text: '', start: 0, end: 0, label: 'X' };
+    const b = { text: '', start: 0, end: 0, label: 'X' };
+    expect(spanSimilarity(a, b)).toBe(1);
+  });
+});
+
+// ─── labelsDisagree for remaining modalities ────────────────────────────────
+
+describe('labelsDisagree — audio and segmentation', () => {
+  it('does not flag matching audio translations', () => {
+    const a = { taskType: 'audio_translation', label: { label: 'hello' } } as LabelPayload;
+    expect(labelsDisagree('audio_translation', a, a)).toBe(false);
+  });
+
+  it('flags differing audio translations', () => {
+    const a = { taskType: 'audio_translation', label: { label: 'hello' } } as LabelPayload;
+    const b = { taskType: 'audio_translation', label: { label: 'goodbye' } } as LabelPayload;
+    expect(labelsDisagree('audio_translation', a, b)).toBe(true);
+  });
+
+  it('does not flag matching document annotations', () => {
+    const a = { taskType: 'document_annotation', label: { label: 'invoice' } } as LabelPayload;
+    expect(labelsDisagree('document_annotation', a, a)).toBe(false);
+  });
+
+  it('scores two identical polygon sets as no disagreement', () => {
+    const poly = {
+      taskType: 'image_segmentation',
+      label: [
+        {
+          points: [[0.1, 0.1], [0.5, 0.1], [0.5, 0.5], [0.1, 0.5]],
+          label: 'road',
+        },
+      ],
+    } as LabelPayload;
+    expect(labelsDisagree('image_segmentation', poly, poly)).toBe(false);
+  });
+
+  it('flags different polygon labels as disagreement', () => {
+    const road = {
+      taskType: 'image_segmentation',
+      label: [{ points: [[0.1, 0.1], [0.5, 0.1], [0.5, 0.5], [0.1, 0.5]], label: 'road' }],
+    } as LabelPayload;
+    const building = {
+      taskType: 'image_segmentation',
+      label: [{ points: [[0.1, 0.1], [0.5, 0.1], [0.5, 0.5], [0.1, 0.5]], label: 'building' }],
+    } as LabelPayload;
+    expect(labelsDisagree('image_segmentation', road, building)).toBe(true);
+  });
+
+  it('gives perfect WER similarity for identical transcripts (zero disagreement)', () => {
+    const a = {
+      taskType: 'audio_transcription',
+      label: [{ startMs: 0, endMs: 1000, text: 'the quick brown fox' }],
+    } as LabelPayload;
+    expect(labelsDisagree('audio_transcription', a, a)).toBe(false);
+  });
+});
