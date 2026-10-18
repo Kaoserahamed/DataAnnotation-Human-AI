@@ -4,10 +4,14 @@ import { apiFetch } from '../api';
 
 export default function Register() {
   const nav = useNavigate();
-  const [form, setForm] = useState({ email: '', name: '', password: '', role: 'admin' });
+  const [form, setForm] = useState({ email: '', name: '', password: '', role: 'annotator' });
   const [err, setErr] = useState('');
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.password.length < 12) {
+      setErr('password must be at least 12 characters');
+      return;
+    }
     try { await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(form) }); nav('/login'); }
     catch (e: any) { setErr(e.message); }
   }
@@ -18,7 +22,7 @@ export default function Register() {
       {err && <p style={{ color: 'red' }}>{err}</p>}
       <input placeholder="name" value={form.name} onChange={set('name')} style={{ width:'100%', marginBottom:8 }} />
       <input placeholder="email" value={form.email} onChange={set('email')} style={{ width:'100%', marginBottom:8 }} />
-      <input placeholder="password" type="password" value={form.password} onChange={set('password')} style={{ width:'100%', marginBottom:8 }} />
+      <input placeholder="password (min 12 chars)" type="password" value={form.password} onChange={set('password')} style={{ width:'100%', marginBottom:8 }} />
       <select value={form.role} onChange={set('role')} style={{ width:'100%', marginBottom:8 }}>
         <option value="admin">admin</option>
         <option value="annotator">annotator</option>
