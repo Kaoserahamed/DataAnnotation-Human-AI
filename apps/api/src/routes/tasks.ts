@@ -7,7 +7,7 @@ import {
   ReviewAnnotationSchema,
   SubmitAnnotationSchema,
   UpdateTaskStateSchema,
-} from '@haap/shared';
+} from '../shared.js';
 import { errors } from '../lib/errors.js';
 import { normalizeQuery, parseWith, requireAuth, requireRole } from '../lib/http.js';
 import { getTaskView } from '../services/catalog-service.js';

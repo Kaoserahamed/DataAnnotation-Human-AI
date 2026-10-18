@@ -10,7 +10,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { MAX_JSON_BODY_BYTES } from '@haap/shared';
+import { MAX_JSON_BODY_BYTES } from './shared.js';
 import { loadConfig, type AppConfig } from './config.js';
 import { createDatabase, type Database } from './db/database.js';
 import { runMigrations } from './db/migrate.js';

@@ -4,12 +4,18 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { HealthResponse, MetricsResponse } from '@haap/shared';
+import type { HealthResponse, MetricsResponse } from '../shared.js';
 import { errors } from '../lib/errors.js';
 import { requireAuth } from '../lib/http.js';
 import { VERSION } from '../version.js';
 
 export function registerSystemRoutes(app: FastifyInstance): void {
+  app.get('/', async () => ({
+    name: 'human-ai-annotation-platform',
+    version: VERSION,
+    endpoints: { health: '/health', ready: '/ready', api: '/api' },
+  }));
+
   // Liveness + database reachability (authenticated-free for probes).
   app.get('/health', async (): Promise<HealthResponse> => {
     const latencyMs = await app.db.ping();

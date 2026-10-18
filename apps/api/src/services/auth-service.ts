@@ -5,7 +5,7 @@
  * (bootstrap from a fresh database); afterwards only admins may create users.
  */
 
-import type { CreateUserInput, LoginInput } from '@haap/shared';
+import type { CreateUserInput, LoginInput } from '../shared.js';
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js';
 import { errors } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';

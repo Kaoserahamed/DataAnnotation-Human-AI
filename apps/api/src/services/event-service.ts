@@ -1,6 +1,6 @@
 /** Append-only audit events backing the annotation history view. */
 
-import type { TaskState } from '@haap/shared';
+import type { TaskState } from '../shared.js';
 import { json, type Database } from '../db/database.js';
 import { newId } from '../lib/ids.js';
 

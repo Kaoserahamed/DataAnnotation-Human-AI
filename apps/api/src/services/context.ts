@@ -4,7 +4,7 @@
  * and testable.
  */
 
-import type { UserRole } from '@haap/shared';
+import type { UserRole } from '../shared.js';
 import type { Database } from '../db/database.js';
 import type { PrelabelProvider } from '../providers/registry.js';
 import type { Metrics } from '../lib/metrics.js';

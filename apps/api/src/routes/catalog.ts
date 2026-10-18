@@ -9,7 +9,7 @@ import {
   PaginationQuerySchema,
   PrelabelTasksSchema,
   UpdateProjectSchema,
-} from '@haap/shared';
+} from '../shared.js';
 import { errors } from '../lib/errors.js';
 import { parseWith, requireAuth, requireRole } from '../lib/http.js';
 import {

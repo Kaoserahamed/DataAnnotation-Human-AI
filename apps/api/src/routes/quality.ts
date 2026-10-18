@@ -11,7 +11,7 @@ import {
   PromoteGoldSchema,
   QueueQuerySchema,
   SampleQcSchema,
-} from '@haap/shared';
+} from '../shared.js';
 import { normalizeQuery, parseWith, requireAuth, requireRole } from '../lib/http.js';
 import { computeAgreement, listDisagreements } from '../services/agreement-service.js';
 import { getQueue } from '../services/queue-service.js';

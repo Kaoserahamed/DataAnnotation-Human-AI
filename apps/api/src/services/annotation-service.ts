@@ -24,7 +24,7 @@ import {
   type TaskState,
   type VerificationOutcome,
   canTransition,
-} from '@haap/shared';
+} from '../shared.js';
 import { json } from '../db/database.js';
 import { errors } from '../lib/errors.js';
 import { newId } from '../lib/ids.js';
@@ -36,7 +36,7 @@ import {
 } from './catalog-service.js';
 import { recordEvent } from './event-service.js';
 import type { AuthUser, ServiceContext } from './context.js';
-import type { ReviewAnnotationInput, SubmitAnnotationInput } from '@haap/shared';
+import type { ReviewAnnotationInput, SubmitAnnotationInput } from '../shared.js';
 
 /**
  * Map a desired state onto one the state machine actually permits.

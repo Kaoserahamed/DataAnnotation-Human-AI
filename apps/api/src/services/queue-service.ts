@@ -22,7 +22,7 @@ import {
   type Paginated,
   type TaskState,
   type TaskType,
-} from '@haap/shared';
+} from '../shared.js';
 import { TASK_WITH_CONTEXT_SELECT, type TaskWithContextRow } from '../db/rows.js';
 import { contentText } from '../providers/types.js';
 import { errors } from '../lib/errors.js';

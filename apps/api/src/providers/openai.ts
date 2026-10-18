@@ -8,7 +8,7 @@
  * label. `fetch` is injectable so tests never touch the network.
  */
 
-import { parseLabelForTaskType } from '@haap/shared';
+import { parseLabelForTaskType } from '../shared.js';
 import type { PrelabelInput, PrelabelProvider, PrelabelResult } from './types.js';
 import { ProviderError } from './types.js';
 

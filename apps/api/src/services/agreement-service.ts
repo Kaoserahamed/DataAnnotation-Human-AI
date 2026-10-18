@@ -26,7 +26,7 @@ function pairIndices(count: number): Array<[number, number]> {
  * Annotations are grouped per task into "units" rated by ≥2 distinct users.
  * Categorical answers collapse to their canonical JSON; structured payloads
  * additionally produce continuous pairwise similarity via the shared
- * comparison primitives. Statistics come from `@haap/shared`:
+ * comparison primitives. Statistics come from `../shared.js`:
  * Cohen's kappa (2 raters), Fleiss' kappa (constant panel size), and
  * Krippendorff's alpha (handles ragged panels), each returning `null` when
  * mathematically undefined rather than a misleading zero.
@@ -45,7 +45,7 @@ import {
   type LabelPayload,
   type RatingsMatrix,
   type TaskType,
-} from '@haap/shared';
+} from '../shared.js';
 import { getDataset } from './catalog-service.js';
 import type { ServiceContext } from './context.js';
 

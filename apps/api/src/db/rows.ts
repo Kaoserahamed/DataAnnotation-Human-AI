@@ -1,6 +1,6 @@
 /** Row shapes returned by the data layer (snake_case, as stored). */
 
-import type { ItemSplit, ReviewVerdict, TaskState, TaskType, UserRole } from '@haap/shared';
+import type { ItemSplit, ReviewVerdict, TaskState, TaskType, UserRole } from '../shared.js';
 
 export type Timestamp = string | Date;
 
