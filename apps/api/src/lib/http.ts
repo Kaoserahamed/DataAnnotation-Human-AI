@@ -8,7 +8,7 @@
 
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import type { UserRole } from '@haap/shared';
+import type { UserRole } from '../shared.js';
 import { verifyToken } from './auth.js';
 import { errors } from './errors.js';
 import type { AuthUser } from '../services/context.js';

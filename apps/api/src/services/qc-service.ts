@@ -19,7 +19,7 @@ import {
   type Paginated,
   type PromoteGoldInput,
   type QcCandidate,
-} from '@haap/shared';
+} from '../shared.js';
 import { json, parseJson } from '../db/database.js';
 import type { QcSampleRow } from '../db/rows.js';
 import { errors } from '../lib/errors.js';

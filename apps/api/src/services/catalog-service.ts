@@ -12,7 +12,7 @@ import type {
   CreateProjectInput,
   Paginated,
   UpdateProjectInput,
-} from '@haap/shared';
+} from '../shared.js';
 import { json, parseJson } from '../db/database.js';
 import type {
   DatasetRow,

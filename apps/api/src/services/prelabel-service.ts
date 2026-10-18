@@ -10,7 +10,7 @@
  * `pending_prelabel` (retryable) and the run reports the failure count.
  */
 
-import { decideAfterPrelabel, parseLabelForTaskType } from '@haap/shared';
+import { decideAfterPrelabel, parseLabelForTaskType } from '../shared.js';
 import { json } from '../db/database.js';
 import type { DatasetRow, ItemRow, TaskRow } from '../db/rows.js';
 import { newId } from '../lib/ids.js';

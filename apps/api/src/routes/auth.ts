@@ -1,7 +1,7 @@
 /** Authentication routes: bootstrap registration, login, current user, user list. */
 
 import type { FastifyInstance } from 'fastify';
-import { CreateUserSchema, LoginSchema } from '@haap/shared';
+import { CreateUserSchema, LoginSchema } from '../shared.js';
 import { optionalAuth, parseWith, requireAuth, requireRole } from '../lib/http.js';
 import {
   getUserById,

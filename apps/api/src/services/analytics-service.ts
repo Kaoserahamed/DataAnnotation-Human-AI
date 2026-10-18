@@ -12,7 +12,7 @@ import {
   type HistoryQuery,
   type Paginated,
   type TaskState,
-} from '@haap/shared';
+} from '../shared.js';
 import { parseJson } from '../db/database.js';
 import type { AnnotationRow, EventRow } from '../db/rows.js';
 import { getDataset } from './catalog-service.js';

@@ -9,7 +9,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
-import type { ErrorResponse } from '@haap/shared';
+import type { ErrorResponse } from '../shared.js';
 import { logAndCapture } from './telemetry.js';
 
 export type ErrorCode =

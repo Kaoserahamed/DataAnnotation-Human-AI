@@ -6,7 +6,7 @@
  * confidence enables one-click acceptance, low confidence escalates.
  */
 
-import type { TaskType } from '@haap/shared';
+import type { TaskType } from '../shared.js';
 
 export interface LabelSchemaDefinition {
   categories?: string[] | undefined;

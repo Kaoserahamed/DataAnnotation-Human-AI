@@ -9,7 +9,7 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { SignJWT, jwtVerify } from 'jose';
-import type { UserRole } from '@haap/shared';
+import type { UserRole } from '../shared.js';
 
 const scrypt = promisify(scryptCallback) as (
   password: string | Buffer,

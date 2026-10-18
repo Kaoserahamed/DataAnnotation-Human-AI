@@ -15,7 +15,7 @@
  *      escalates to a human instead of pretending to be sure.
  */
 
-import { parseLabelForTaskType } from '@haap/shared';
+import { parseLabelForTaskType } from '../shared.js';
 import type { PrelabelInput, PrelabelProvider, PrelabelResult } from './types.js';
 import { ProviderError, contentText, stableHash } from './types.js';
 

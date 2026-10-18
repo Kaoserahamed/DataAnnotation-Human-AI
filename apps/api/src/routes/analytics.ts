@@ -2,7 +2,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { HistoryQuerySchema } from '@haap/shared';
+import { HistoryQuerySchema } from '../shared.js';
 import { normalizeQuery, parseWith, requireAuth } from '../lib/http.js';
 import { annotatorPerformance, history } from '../services/analytics-service.js';
 
