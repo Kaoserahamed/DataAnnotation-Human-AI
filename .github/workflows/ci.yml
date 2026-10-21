@@ -2,81 +2,91 @@ name: CI
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: [development]
   pull_request:
-    branches: ["main", "master"]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [development]
 
 jobs:
-  # ── Quality gate: format · lint · typecheck · test + coverage ──────────────
-  ci:
-    name: Lint · Typecheck · Test
+  format-lint:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20.11.0
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.11.0"
-          cache: "npm"
-
-      - name: Install dependencies (clean install from lockfile)
-        run: npm ci
-
-      - name: Check formatting (Prettier)
-        run: npm run format:check
-
-      - name: Lint (ESLint)
-        run: npm run lint
-
-      - name: Typecheck (tsc --noEmit across all workspaces)
-        run: npm run typecheck
-
-      - name: Run tests with coverage (80% threshold enforced by vitest config)
-        run: npm run test:coverage
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: |
-            packages/shared/coverage/
-            apps/api/coverage/
-          retention-days: 7
-
-  # ── Security: audit production deps for high/critical CVEs ─────────────────
-  audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20.11.0
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.11.0"
-          cache: "npm"
-
+          node-version: '20'
       - name: Install dependencies
         run: npm ci
+      - name: Format check
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
 
-      # Fails the build if any production dependency has a high or critical
-      # vulnerability. Uses the npm script so the flag is kept in one place.
-      - name: Audit production dependencies (high/critical)
-        run: npm run audit:prod
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: haap_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
-      # Separate informational step: audit all deps including devDependencies.
-      # Uses continue-on-error so dev-only findings don't block the build,
-      # but they appear in the job log for visibility.
-      - name: Audit all dependencies (informational)
-        run: npm run audit:all
-        continue-on-error: true
+  build:
+    runs-on: ubuntu-latest
+    needs: [format-lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Docker image
+        run: docker build -t data-annotation-ai .
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run npm audit
+        run: npm audit:prod
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/development'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy with Docker Compose
+        run: |
+          docker compose up --build -d
+          sleep 10
+          curl -f http://localhost:4000/health
+          docker compose down
