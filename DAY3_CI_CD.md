@@ -55,3 +55,4 @@ GitHub Actions CI/CD for TypeScript ESM monorepo (npm workspaces).
 
 ## Day 3 Outcome
 CI/CD pipeline documented. No code changes. 0 PRs. Ready for Day 4 (project restructuring).
+<!-- Feature branch commit for PR -->
