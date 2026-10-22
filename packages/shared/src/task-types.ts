@@ -68,7 +68,7 @@ export type ReviewVerdict = (typeof REVIEW_VERDICTS)[number];
 export const ITEM_SPLITS = ['pool', 'dev', 'test', 'gold'] as const;
 export type ItemSplit = (typeof ITEM_SPLITS)[number];
 
-export const USER_ROLES = ['admin', 'annotator', 'reviewer'] as const;
+export const USER_ROLES = ['admin', 'annotator', 'reviewer', 'client'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const QC_SAMPLING_REASONS = ['random', 'risk', 'gold_check'] as const;

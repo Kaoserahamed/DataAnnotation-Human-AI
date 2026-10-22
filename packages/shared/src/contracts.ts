@@ -77,6 +77,27 @@ export const LoginSchema = z
   .object({
     email: EmailSchema,
     password: z.string().min(1).max(128),
+    mfaToken: z.string().min(6).max(12).optional(),
+  })
+  .strict();
+
+export const RefreshTokenSchema = z
+  .object({
+    refreshToken: z.string().min(1),
+  })
+  .strict();
+
+export const MfaVerifySchema = z
+  .object({
+    token: z.string().min(6).max(12),
+  })
+  .strict();
+
+export const OAuthLoginSchema = z
+  .object({
+    provider: z.enum(['google', 'github']),
+    code: z.string().min(1),
+    redirectUri: z.string().url().optional(),
   })
   .strict();
 

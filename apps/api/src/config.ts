@@ -16,6 +16,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   JWT_SECRET: z.string().min(32).optional(),
   JWT_EXPIRES_IN: z.string().min(1).default('12h'),
+  JWT_REFRESH_EXPIRES_IN: z.string().min(1).default('7d'),
   DB_CLIENT: z.enum(['pglite', 'postgres']).default('pglite'),
   DATABASE_URL: z.string().min(1).default('postgres://postgres:postgres@localhost:5432/annotation'),
   /** Directory for the file-backed PGlite database; unset means in-memory. */

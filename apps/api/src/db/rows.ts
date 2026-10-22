@@ -10,6 +10,11 @@ export interface UserRow {
   name: string;
   password_hash: string;
   role: UserRole;
+  refresh_token: string | null;
+  mfa_enabled: boolean;
+  mfa_secret: string | null;
+  oauth_provider: string | null;
+  oauth_subject: string | null;
   created_at: Timestamp;
 }
 
