@@ -128,7 +128,7 @@ describe('logAndCapture', () => {
     logAndCapture(logger, tracker, baseFields);
 
     expect(logger.error).toHaveBeenCalledOnce();
-    const [loggedObject, loggedMsg] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [loggedObject, loggedMsg] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(loggedObject.requestId).toBe('req-abc');
     expect(loggedObject.code).toBe('INTERNAL_ERROR');
     expect(loggedObject.statusCode).toBe(500);
@@ -167,7 +167,7 @@ describe('logAndCapture', () => {
 
     logAndCapture(logger, tracker, { ...baseFields, err: { raw: 'db-timeout' } });
 
-    const [loggedObject] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [loggedObject] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(loggedObject.err).toEqual({ raw: 'db-timeout' });
   });
 
@@ -185,7 +185,7 @@ describe('logAndCapture', () => {
 
     logAndCapture(logger, tracker, { ...baseFields, requestId: 'corr-xyz' });
 
-    const [loggedObject] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [loggedObject] = (logger.error as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(loggedObject.requestId).toBe('corr-xyz');
   });
 });

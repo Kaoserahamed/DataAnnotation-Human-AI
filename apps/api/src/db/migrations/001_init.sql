@@ -8,7 +8,12 @@ CREATE TABLE users (
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('admin', 'annotator', 'reviewer')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'annotator', 'reviewer', 'client')),
+  refresh_token TEXT,
+  mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  mfa_secret TEXT,
+  oauth_provider TEXT,
+  oauth_subject TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
